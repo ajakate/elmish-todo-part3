@@ -6,6 +6,11 @@ open Elmish.React
 open Feliz
 open System
 
+type Filter =
+  | All
+  | Completed
+  | Incomplete
+
 type Todo = {
   Id : Guid
   Description : string
@@ -21,6 +26,7 @@ type State = {
   TodoList: Todo list
   NewTodo : string
   TodoBeingEdited : TodoBeingEdited option
+  Filter: Filter
 }
 
 type Msg =
@@ -32,6 +38,7 @@ type Msg =
   | ApplyEdit
   | StartEditingTodo of Guid
   | SetEditedDescription of string
+  | SetFilter of Filter
 
 
 let init() = {
@@ -41,6 +48,7 @@ let init() = {
   ]
   NewTodo = ""
   TodoBeingEdited = None
+  Filter =  Filter.All
 }
 
 let update (msg: Msg) (state: State) =
@@ -109,6 +117,8 @@ let update (msg: Msg) (state: State) =
         |> Option.map (fun todoBeingEdited -> { todoBeingEdited with Description = newText })
 
       { state with TodoBeingEdited = nextEditModel }
+  | SetFilter newFilter ->
+      { state with Filter = newFilter }
 
 // Helper function to easily construct div with only classes and children
 let div (classes: string list) (children: ReactElement list) =
@@ -217,14 +227,50 @@ let renderEditForm (todoBeingEdited: TodoBeingEdited) (dispatch: Msg -> unit) =
   ]
 
 let todoList (state: State) (dispatch: Msg -> unit) =
+  let todosToRender = match state.Filter with
+    | All -> state.TodoList
+    | Completed ->
+      state.TodoList
+        |> List.filter (fun todo -> todo.Completed = true)
+    | Incomplete ->
+      state.TodoList
+        |> List.filter (fun todo -> todo.Completed = false)
+
   Html.ul [
     prop.children [
-      for todo in state.TodoList ->
+      for todo in todosToRender ->
         match state.TodoBeingEdited with
         | Some todoBeingEdited when todoBeingEdited.Id = todo.Id ->
             renderEditForm todoBeingEdited dispatch
         | otherwise ->
             renderTodo todo dispatch
+    ]
+  ]
+
+let renderTab (sendType: Filter) (displayText: string) (state: State) (dispatch: Msg -> unit) =
+
+  let classname = 
+    if state.Filter = sendType
+    then "is-active"
+    else ""
+
+  Html.li [
+        prop.className classname
+        prop.children [
+          Html.a [
+            prop.text displayText
+            prop.onClick (fun _ -> dispatch (SetFilter sendType))
+          ]
+        ]
+      ]
+
+
+let renderFilterTabs (state: State) (dispatch: Msg -> unit) =
+  div [ "tabs"; "is-toggle"; "is-fullwidth" ] [
+    Html.ul [
+      renderTab Filter.All "All" state dispatch
+      renderTab Filter.Completed "Completed" state dispatch
+      renderTab Filter.Incomplete "Not Completed" state dispatch
     ]
   ]
 
@@ -234,6 +280,7 @@ let render (state: State) (dispatch: Msg -> unit) =
     prop.children [
       appTitle
       inputField state dispatch
+      renderFilterTabs state dispatch
       todoList state dispatch
     ]
   ]
