@@ -194,8 +194,12 @@ let renderTodo (todo: Todo) (dispatch: Msg -> unit) =
     ]
   ]
 
-
-let renderEditForm (todoBeingEdited: TodoBeingEdited) (dispatch: Msg -> unit) =
+let renderEditForm (originalText: string) (todoBeingEdited: TodoBeingEdited) (dispatch: Msg -> unit) =
+  let applyClass =
+    if todoBeingEdited.Description = originalText
+    then "is-outlined"
+    else "is-primary"
+  
   div [ "box" ] [
     div [ "field is-grouped" ] [
       div [ "control is-expanded" ] [
@@ -208,7 +212,7 @@ let renderEditForm (todoBeingEdited: TodoBeingEdited) (dispatch: Msg -> unit) =
 
       div [ "control"; "buttons" ] [
         Html.button [
-          prop.classes [ "button"; "is-primary"]
+          prop.classes [ "button"; applyClass]
           prop.onClick (fun _ -> dispatch ApplyEdit)
           prop.children [
             Html.i [ prop.classes ["fa"; "fa-save" ] ]
@@ -241,7 +245,7 @@ let todoList (state: State) (dispatch: Msg -> unit) =
       for todo in todosToRender ->
         match state.TodoBeingEdited with
         | Some todoBeingEdited when todoBeingEdited.Id = todo.Id ->
-            renderEditForm todoBeingEdited dispatch
+            renderEditForm todo.Description todoBeingEdited dispatch
         | otherwise ->
             renderTodo todo dispatch
     ]
