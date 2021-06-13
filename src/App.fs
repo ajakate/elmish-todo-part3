@@ -46,6 +46,13 @@ let init() = {
   Filter =  Filter.All
 }
 
+let modifyList todoId (state: State) todoFunc = 
+    let nextTodoList =
+        state.TodoList
+        |> List.map (fun todo -> if todoId = todo.Id then todoFunc todo else todo)
+      
+    { state with TodoList = nextTodoList }
+
 let update (msg: Msg) (state: State) =
   match msg with
   | SetNewTodo desc ->
@@ -74,42 +81,19 @@ let update (msg: Msg) (state: State) =
       { state with TodoList = nextTodoList }
 
   | ToggleCompleted todoId ->
-      let nextTodoList =
-        state.TodoList
-        |> List.map (fun todo ->
-           if todo.Id = todoId
-           then { todo with Completed = not todo.Completed }
-           else todo)
-
-      { state with TodoList = nextTodoList }
+      modifyList todoId state (fun todo -> { todo with Completed = not todo.Completed })
 
   | StartEditingTodo todoId ->
-      let nextTodoList =
-        state.TodoList
-        |> List.map (fun todo -> if todoId = todo.Id then {todo with BeingEdited = true; EditDescription = todo.Description} else todo)
-      
-      { state with TodoList = nextTodoList }
+      modifyList todoId state (fun todo -> {todo with BeingEdited = true; EditDescription = todo.Description})
 
   | CancelEdit todoId ->
-      let nextTodoList =
-        state.TodoList
-        |> List.map (fun todo -> if todoId = todo.Id then {todo with BeingEdited = false; } else todo)
-      
-      { state with TodoList = nextTodoList }
+      modifyList todoId state (fun todo -> {todo with BeingEdited = false})
 
   | ApplyEdit todoId->
-      let nextTodoList =
-        state.TodoList
-        |> List.map (fun todo -> if todoId = todo.Id then {todo with BeingEdited = false; Description = todo.EditDescription} else todo)
-
-      { state with TodoList = nextTodoList }
+      modifyList todoId state (fun todo -> {todo with BeingEdited = false; Description = todo.EditDescription})
 
   | SetEditedDescription (todoId, newText) ->
-      let nextTodoList =
-        state.TodoList
-        |> List.map (fun todo -> if todoId = todo.Id then {todo with EditDescription = newText} else todo)
-
-      { state with TodoList = nextTodoList }
+      modifyList todoId state (fun todo -> {todo with EditDescription = newText})
   
   | SetFilter newFilter ->
       { state with Filter = newFilter }
